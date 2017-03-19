@@ -1,11 +1,9 @@
 require 'base64'
 require 'faraday'
 require 'faraday_middleware'
+require 'pscb_integration/api_error'
 
 module PscbIntegration
-  ApiError = Class.new(StandardError)
-  UnknownPaymentError = Class.new(ApiError)
-
   class Client
     def initialize(settings)
       @settings = settings
@@ -18,7 +16,7 @@ module PscbIntegration
           faraday.response :logger, Rails.logger, bodies: true
         end
 
-        faraday.adapter  Faraday.default_adapter  # make requests with Net::HTTP
+        faraday.adapter Faraday.default_adapter  # make requests with Net::HTTP
       end
     end
 
@@ -108,10 +106,17 @@ module PscbIntegration
 
       if body && body['status'] == 'STATUS_SUCCESS'
         body['payment']
-      elsif body && body['errorCode'] == 'UNKNOWN_PAYMENT'
-        raise UnknownPaymentError, "#{body}"
+      elsif body && (error_code = body['errorCode'])
+        raise ApiError.new(error_code: error_code, body: body)
+      elsif body && (error = body['paymentSystemError'] || body.dig('payment', 'lastError'))
+        raise DetailedApiError.new(
+          code: error['code'],
+          sub_code: error['subCode'],
+          details: error['details'],
+          body: body,
+        )
       else
-        raise ApiError, "Payment system error #{body}"
+        raise ApiError.new(error_code: 'Payment system error', body: body)
       end
     end
   end
