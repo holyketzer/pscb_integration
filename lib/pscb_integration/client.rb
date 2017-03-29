@@ -1,10 +1,14 @@
 require 'base64'
 require 'faraday'
 require 'faraday_middleware'
+require 'fear'
 require 'pscb_integration/api_error'
+require 'pscb_integration/extended_api_error'
 
 module PscbIntegration
   class Client
+    include Fear::Either::Mixin
+
     def initialize(settings)
       @settings = settings
 
@@ -101,22 +105,26 @@ module PscbIntegration
       Digest::SHA256.new.hexdigest(str + @settings[:secret_key].to_s)
     end
 
+    # @return [Either<Hash, ApiError>]
     def handle_response(res)
       body = res.body
 
       if body && body['status'] == 'STATUS_SUCCESS'
-        body['payment']
+        Right(body['payment'])
       elsif body && (error_code = body['errorCode'])
-        raise ApiError.new(error_code: error_code, body: body)
+        Left(ApiError.new(error_code: error_code, body: body))
       elsif body && (error = body['paymentSystemError'] || body.dig('payment', 'lastError'))
-        raise DetailedApiError.new(
-          code: error['code'],
-          sub_code: error['subCode'],
-          details: error['details'],
-          body: body,
+        p 'BOOM'
+        Left(
+          ExtendedApiError.new(
+            error_code: error['code'],
+            error_sub_code: error['subCode'],
+            details: error['details'],
+            body: body,
+          )
         )
       else
-        raise ApiError.new(error_code: 'Payment system error', body: body)
+        Left(ApiError.new(error_code: 'Payment system error', body: body))
       end
     end
   end

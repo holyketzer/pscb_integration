@@ -1,4 +1,5 @@
 require 'addressable/uri'
+require 'fear/rspec'
 
 describe PscbIntegration::Client do
   let(:client) { described_class.new(settings) }
@@ -75,7 +76,11 @@ describe PscbIntegration::Client do
       let(:order_id) { 'unknown_id' }
 
       it do
-        expect { subject }.to raise_error(PscbIntegration::ApiError, /unknown_payment/i)
+        expect(subject).to be_left_of(PscbIntegration::ApiError)
+
+        expect(subject.swap.map { |e| e.to_s }).to be_right_of(
+          match(/unknown_payment/i)
+        )
       end
     end
 
@@ -84,11 +89,13 @@ describe PscbIntegration::Client do
       let(:order_id) { '12345' }
 
       it do
-        expect(subject).to include(
-          'orderId' => order_id,
-          'amount' => amount,
-          'state' => 'end',
-          'marketPlace' => market_place,
+        expect(subject).to be_right_of(
+          include(
+            'orderId' => order_id,
+            'amount' => amount,
+            'state' => 'end',
+            'marketPlace' => market_place,
+          )
         )
       end
     end
@@ -98,11 +105,13 @@ describe PscbIntegration::Client do
       let(:order_id) { '12346' }
 
       it do
-        expect(subject).to include(
-          'orderId' => order_id,
-          'amount' => amount,
-          'state' => 'err',
-          'marketPlace' => market_place,
+        expect(subject).to be_right_of(
+          include(
+            'orderId' => order_id,
+            'amount' => amount,
+            'state' => 'err',
+            'marketPlace' => market_place,
+          )
         )
       end
     end
@@ -120,13 +129,17 @@ describe PscbIntegration::Client do
       let(:order_id) { '12347' }
 
       it do
-        expect(subject).to include(
-          'orderId' => order_id,
-          'state' => 'end',
-          'marketPlace' => market_place,
+        expect(subject).to be_right_of(
+          include(
+            'orderId' => order_id,
+            'state' => 'end',
+            'marketPlace' => market_place,
+          )
         )
 
-        expect(subject).to include('refunds')
+        expect(subject).to be_right_of(
+          include('refunds')
+        )
       end
 
       context 'failed payment' do
@@ -134,7 +147,11 @@ describe PscbIntegration::Client do
         let(:order_id) { '12346' }
 
         it do
-          expect { subject }.to raise_error(PscbIntegration::ApiError, /невозможно совершить требуемое действие/)
+          expect(subject).to be_left_of(PscbIntegration::ApiError)
+
+          expect(subject.swap.map { |e| e.to_s }).to be_right_of(
+            match(/невозможно совершить требуемое действие/)
+          )
         end
       end
 
@@ -143,7 +160,11 @@ describe PscbIntegration::Client do
         let(:order_id) { '12347' }
 
         it do
-          expect { subject }.to raise_error(PscbIntegration::ApiError, /невозможно совершить требуемое действие/)
+          expect(subject).to be_left_of(PscbIntegration::ApiError)
+
+          expect(subject.swap.map { |e| e.to_s }).to be_right_of(
+            match(/невозможно совершить требуемое действие/)
+          )
         end
       end
     end
@@ -170,11 +191,13 @@ describe PscbIntegration::Client do
       let(:token) { '13346679' }
 
       it do
-        expect(subject).to include(
-          'orderId' => new_order_uid,
-          'amount' => amount,
-          'state' => 'sent',
-          'marketPlace' => market_place,
+        expect(subject).to be_right_of(
+          include(
+            'orderId' => new_order_uid,
+            'amount' => amount,
+            'state' => 'sent',
+            'marketPlace' => market_place,
+          )
         )
       end
     end
@@ -185,7 +208,9 @@ describe PscbIntegration::Client do
       let(:token) { '00000' }
 
       it do
-        expect { subject }.to raise_error(PscbIntegration::ApiError, /illegal_payment_state/i)
+        expect(subject).to be_left_of(PscbIntegration::ApiError)
+
+        expect(subject.swap.map { |e| e.error_code }).to be_right_of('ILLEGAL_PAYMENT_STATE')
       end
     end
   end

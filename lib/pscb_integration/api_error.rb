@@ -1,7 +1,5 @@
-require 'pscb_integration/error_details'
-
 module PscbIntegration
-  class ApiError < StandardError
+  class ApiError
     ERROR_CODES = {
       'NOT_AUTHORIZED' => 'запрос не авторизован',
       'ILLEGAL_REQUEST' => 'некорректный запрос',
@@ -28,14 +26,6 @@ module PscbIntegration
 
     def unknown_payment?
       'UNKNOWN_PAYMENT' == error_code
-    end
-  end
-
-  class DetailedApiError < ApiError
-    attr_reader :details
-
-    def initialize(**params)
-      @details = ErrorDetails.new(params)
     end
   end
 end

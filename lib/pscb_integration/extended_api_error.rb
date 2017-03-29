@@ -1,6 +1,6 @@
 module PscbIntegration
-  class ErrorDetails
-    CODES = {
+  class ExtendedApiError < ApiError
+    ERROR_CODES = {
       0 => 'Платеж обработан успешно',
       1 => 'Платеж находится в обработке',
       2 => 'Платеж ожидает подтверждения одноразовым паролем',
@@ -18,7 +18,7 @@ module PscbIntegration
       -19 => 'Попытка фрода',
     }.freeze
 
-    SUB_CODES = {
+    ERROR_SUB_CODES = {
       100 => 'Сервис недоступен',
       101 => 'Регламентные работы',
       102 => 'Недоступен шлюз в МПС',
@@ -66,16 +66,16 @@ module PscbIntegration
       96 => 'System malfunction',
     }.freeze
 
-    attr_reader :code, :sub_code, :description
+    attr_reader :error_sub_code, :description
 
-    def initialize(code:, sub_code:, description:)
-      @code = code
-      @sub_code = sub_code
+    def initialize(error_code:, error_sub_code:, description:, body:)
+      super(error_code: error_code, body: body)
+      @error_sub_code = error_sub_code
       @description = description
     end
 
     def to_s
-      "#{description} #{CODES[code]} #{SUB_CODES[sub_code]}"
+      "#{description} #{ERROR_CODES[error_code]} #{ERROR_SUB_CODES[error_sub_code]} #{body}"
     end
   end
 end
