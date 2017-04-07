@@ -2,19 +2,19 @@ require 'addressable/uri'
 require 'fear/rspec'
 
 describe PscbIntegration::Client do
-  let(:client) { described_class.new(settings) }
+  let(:client) { described_class.new(config) }
 
   let(:secret_key) { '111111' }
   let(:host) { 'https://oosdemo.pscb.ru' }
   let(:market_place) { 25633032 }
   let(:amount) { 200.0 }
 
-  let(:settings) do
-    {
+  let(:config) do
+    PscbIntegration::Config.new(
       host: host,
       market_place: market_place,
       secret_key: secret_key,
-    }
+    )
   end
 
   describe 'encryption' do

@@ -39,3 +39,13 @@ Bug reports and pull requests are welcome on GitHub at https://github.com/[USERN
 
 The gem is available as open source under the terms of the [MIT License](http://opensource.org/licenses/MIT).
 
+# Pro
+
+Да чуть меньше комиссия чем у Яндекс.Кассы
+
+# Cons
+
+Медленный личный кабинет, очень 
+Потеря всех реккурентов
+Неконсистентный API, у ответов на разные запросы, по разному возвращаются ошибки
+Коллбеки о состоянии платежа для демо-окружения приходят на production-сервер, и если их не обрабатывать то приходят письма типа "ПСКБ OOS. Получаем неверный ответ на наши HTTP-оповещения"

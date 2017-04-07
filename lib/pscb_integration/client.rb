@@ -9,10 +9,12 @@ module PscbIntegration
   class Client
     include Fear::Either::Mixin
 
-    def initialize(settings)
-      @settings = settings
+    attr_reader :config
 
-      @client = Faraday.new(url: @settings[:host]) do |faraday|
+    def initialize(explicit_config = nil)
+      @config = explicit_config || PscbIntegration.config
+
+      @client = Faraday.new(url: config.host) do |faraday|
         faraday.request  :json                    # form-encode POST params
         faraday.response :json
 
@@ -28,7 +30,7 @@ module PscbIntegration
       json = message.to_json
 
       params = {
-        marketPlace: @settings[:market_place],
+        marketPlace: config.market_place,
         message: Base64.urlsafe_encode64(json),
         signature: signature(json),
       }
@@ -40,7 +42,7 @@ module PscbIntegration
       body = {
         orderId: prev_order_uid,
         newOrderId: new_order_uid,
-        marketPlace: @settings[:market_place],
+        marketPlace: config.market_place,
         token: token,
         amount: amount,
       }.to_json
@@ -56,7 +58,7 @@ module PscbIntegration
     def pull_order_status(order_uid)
       body = {
         orderId: order_uid,
-        marketPlace: @settings[:market_place],
+        marketPlace: config.market_place,
       }.to_json
 
       res = @client.post('merchantApi/checkPayment') do |request|
@@ -70,7 +72,7 @@ module PscbIntegration
     def refund_order(order_uid)
       body = {
         orderId: order_uid,
-        marketPlace: @settings[:market_place],
+        marketPlace: config.market_place,
         partialRefund: false,
       }.to_json
 
@@ -85,7 +87,7 @@ module PscbIntegration
     def decrypt(encrypted)
       decipher = OpenSSL::Cipher::AES.new(128, :ECB)
       decipher.decrypt
-      decipher.key = Digest::MD5.digest(@settings[:secret_key].to_s)
+      decipher.key = Digest::MD5.digest(config.secret_key.to_s)
 
       plain = decipher.update(encrypted) + decipher.final
       plain.force_encoding('utf-8')
@@ -94,7 +96,7 @@ module PscbIntegration
     def encrypt(plain)
       cipher = OpenSSL::Cipher::AES.new(128, :ECB)
       cipher.encrypt
-      cipher.key = Digest::MD5.digest(@settings[:secret_key].to_s)
+      cipher.key = Digest::MD5.digest(config.secret_key.to_s)
 
       cipher.update(plain) + cipher.final
     end
@@ -102,7 +104,7 @@ module PscbIntegration
     private
 
     def signature(str)
-      Digest::SHA256.new.hexdigest(str + @settings[:secret_key].to_s)
+      Digest::SHA256.new.hexdigest(str + config.secret_key.to_s)
     end
 
     # @return [Either<Hash, ApiError>]
@@ -114,7 +116,6 @@ module PscbIntegration
       elsif body && (error_code = body['errorCode'])
         Left(ApiError.new(error_code: error_code, body: body))
       elsif body && (error = body['paymentSystemError'] || body.dig('payment', 'lastError'))
-        p 'BOOM'
         Left(
           ExtendedApiError.new(
             error_code: error['code'],
