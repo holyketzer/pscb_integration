@@ -84,10 +84,12 @@ module PscbIntegration
       handle_response(res)
     end
 
-    def decrypt(encrypted)
+    def decrypt(encrypted, demo: false)
+      secret_key = demo ? config.demo_secret_key : config.secret_key
+
       decipher = OpenSSL::Cipher::AES.new(128, :ECB)
       decipher.decrypt
-      decipher.key = Digest::MD5.digest(config.secret_key.to_s)
+      decipher.key = Digest::MD5.digest(secret_key.to_s)
 
       plain = decipher.update(encrypted) + decipher.final
       plain.force_encoding('utf-8')

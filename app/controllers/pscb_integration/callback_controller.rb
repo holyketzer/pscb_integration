@@ -6,16 +6,18 @@ module PscbIntegration
       encrypted_body = request.body.read
       log("PSCB payment_statuses encrypted params '#{encrypted_body.unpack('H*').first}'")
 
-      body = client.decrypt(encrypted_body)
-      log("PSCB payment_statuses binary params '#{body.unpack('H*').first}'")
+      body, is_demo_env = *decrypt(encrypted_body)
+      log("PSCB payment_statuses binary params '#{body.unpack('H*').first}' demo_env=#{is_demo_env}")
 
       json = JSON.parse(body)
       log("PSCB payment_statuses params #{json.inspect}")
 
       response = json['payments'].map do |payment|
+        confirmed = config.confirm_payment_callback.call(payment, is_demo_env)
+
         {
           orderId: payment['orderId'],
-          action: config.update_payment_status.call(payment)
+          action: confirmed ? 'CONFIRM' : 'REJECT'
         }
       end
 
@@ -25,6 +27,20 @@ module PscbIntegration
     end
 
     private
+
+    def decrypt(encrypted_body)
+      [
+        client.decrypt(encrypted_body),
+        false,
+      ]
+    rescue OpenSSL::Cipher::CipherError
+      log("PSCB payment_statuses decryption with production key is failed, trying with demo key")
+
+      [
+        client.decrypt(encrypted_body, demo: true),
+        true,
+      ]
+    end
 
     def log(line)
       if defined?(Rails)
