@@ -1,5 +1,5 @@
 module PscbIntegration
-  class ApiError
+  class ApiError < BaseApiError
     ERROR_CODES = {
       'NOT_AUTHORIZED' => 'запрос не авторизован',
       'ILLEGAL_REQUEST' => 'некорректный запрос',
@@ -13,7 +13,7 @@ module PscbIntegration
       'SERVER_ERROR' => 'произошла ошибка на сервере. При возникновении данной ошибки рекомендуется выполнить запрос состояния платежа, чтобы уточнить текущий статус платежа',
     }.freeze
 
-    attr_reader :error_code, :body
+    attr_reader :body
 
     def initialize(error_code:, body:)
       @error_code = error_code

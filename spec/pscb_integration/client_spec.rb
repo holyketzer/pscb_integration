@@ -78,7 +78,7 @@ describe PscbIntegration::Client do
       it do
         expect(subject).to be_left_of(PscbIntegration::ApiError)
 
-        expect(subject.swap.map { |e| e.to_s }).to be_right_of(
+        expect(subject.swap.map(&:to_s)).to be_right_of(
           match(/unknown_payment/i)
         )
       end
@@ -149,7 +149,7 @@ describe PscbIntegration::Client do
         it do
           expect(subject).to be_left_of(PscbIntegration::ApiError)
 
-          expect(subject.swap.map { |e| e.to_s }).to be_right_of(
+          expect(subject.swap.map(&:to_s)).to be_right_of(
             match(/невозможно совершить требуемое действие/)
           )
         end
@@ -162,7 +162,7 @@ describe PscbIntegration::Client do
         it do
           expect(subject).to be_left_of(PscbIntegration::ApiError)
 
-          expect(subject.swap.map { |e| e.to_s }).to be_right_of(
+          expect(subject.swap.map(&:to_s)).to be_right_of(
             match(/невозможно совершить требуемое действие/)
           )
         end
@@ -210,8 +210,40 @@ describe PscbIntegration::Client do
       it do
         expect(subject).to be_left_of(PscbIntegration::ApiError)
 
-        expect(subject.swap.map { |e| e.error_code }).to be_right_of('ILLEGAL_PAYMENT_STATE')
+        expect(subject.swap.map(&:error_code)).to be_right_of('ILLEGAL_PAYMENT_STATE')
       end
+    end
+  end
+
+  describe 'HTTP client errors handling' do
+    subject { client.pull_order_status('some_id') }
+
+    before do
+      allow(client.instance_variable_get(:@client)).to receive(:post).and_raise(error)
+    end
+
+    context 'timeout error' do
+      let(:error) { Faraday::TimeoutError }
+
+      it do
+        expect(subject).to be_left_of(PscbIntegration::BaseApiError)
+        expect(subject.swap.map(&:to_s)).to be_right_of(/timeout/i)
+      end
+    end
+
+    context 'connection error' do
+      let(:error) { Faraday::Error::ConnectionFailed.new('some error') }
+
+      it do
+        expect(subject).to be_left_of(PscbIntegration::BaseApiError)
+        expect(subject.swap.map(&:to_s)).to be_right_of(/connection/i)
+      end
+    end
+
+    context 'any another error' do
+      let(:error) { StandardError }
+
+      it { expect { subject }.to raise_error(error) }
     end
   end
 end

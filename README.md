@@ -137,19 +137,19 @@ client = PscbIntegration::Client.new
 res = client.pull_order_status(order.id)
 
 res.reduce(
+  # Left result is handled here
+  # @param error - PscbIntegration::BaseApiError
+  ->(error) {
+    # Some special error handling e.g.
+    if error.unknown_payment?
+      # Do something special
+    end
+  },
+
   # Right result is handled here
   # @param payment - payment hash from PSCB
   ->(payment) { 
     # Update order status
-  },
-
-  # Left result is handled here
-  # @param api_error - PscbIntegration::ApiError
-  ->(api_error) {
-    # Some special error handling e.g.
-    if api_error.unknown_payment?
-      # Do something special
-    end
   }
 )
 ```
@@ -171,8 +171,8 @@ res = client.recurring_payment(
 )
 
 res.reduce(
+  ->(error) { },
   ->(payment) { },
-  ->(api_error) { },
 )
 ```
 
@@ -186,8 +186,8 @@ client = PscbIntegration::Client.new
 res = client.refund_order(order.id)
 
 res.reduce(
+  ->(error) { },
   ->(payment) { },
-  ->(api_error) { },
 )
 ```
 

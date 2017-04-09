@@ -2,6 +2,7 @@ require 'base64'
 require 'faraday'
 require 'faraday_middleware'
 require 'fear'
+require 'pscb_integration/base_api_error'
 require 'pscb_integration/api_error'
 require 'pscb_integration/extended_api_error'
 
@@ -47,12 +48,9 @@ module PscbIntegration
         amount: amount,
       }.to_json
 
-      res = @client.post('merchantApi/payRecurrent') do |request|
-        request.headers['Signature'] = signature(body)
-        request.body = body
-      end
-
-      handle_response(res)
+      handle_response(
+        post('merchantApi/payRecurrent', body)
+      )
     end
 
     def pull_order_status(order_uid)
@@ -61,12 +59,9 @@ module PscbIntegration
         marketPlace: config.market_place,
       }.to_json
 
-      res = @client.post('merchantApi/checkPayment') do |request|
-        request.headers['Signature'] = signature(body)
-        request.body = body
-      end
-
-      handle_response(res)
+      handle_response(
+        post('merchantApi/checkPayment', body)
+      )
     end
 
     def refund_order(order_uid)
@@ -76,12 +71,9 @@ module PscbIntegration
         partialRefund: false,
       }.to_json
 
-      res = @client.post('merchantApi/refundPayment') do |request|
-        request.headers['Signature'] = signature(body)
-        request.body = body
-      end
-
-      handle_response(res)
+      handle_response(
+        post('merchantApi/refundPayment', body)
+      )
     end
 
     def decrypt(encrypted, demo: false)
@@ -109,25 +101,39 @@ module PscbIntegration
       Digest::SHA256.new.hexdigest(str + config.secret_key.to_s)
     end
 
-    # @return [Either<Hash, ApiError>]
-    def handle_response(res)
-      body = res.body
+    # @return [Either<Faraday::Response, BaseApiError>]
+    def post(path, body)
+      response = @client.post(path) do |request|
+        request.headers['Signature'] = signature(body)
+        request.body = body
+      end
 
-      if body && body['status'] == 'STATUS_SUCCESS'
-        Right(body['payment'])
-      elsif body && (error_code = body['errorCode'])
-        Left(ApiError.new(error_code: error_code, body: body))
-      elsif body && (error = body['paymentSystemError'] || body.dig('payment', 'lastError'))
-        Left(
-          ExtendedApiError.new(
-            error_code: error['code'],
-            error_sub_code: error['subCode'],
-            details: error['details'],
-            body: body,
+      Right(response.body)
+    rescue Faraday::TimeoutError
+      Left(BaseApiError.new(:timeout))
+    rescue Faraday::Error::ConnectionFailed
+      Left(BaseApiError.new(:connection_failed))
+    end
+
+    # @return [Either<Hash, BaseApiError>]
+    def handle_response(response_body)
+      response_body.flat_map do |body|
+        if body && body['status'] == 'STATUS_SUCCESS'
+          Right(body['payment'])
+        elsif body && (error_code = body['errorCode'])
+          Left(ApiError.new(error_code: error_code, body: body))
+        elsif body && (error = body['paymentSystemError'] || body.dig('payment', 'lastError'))
+          Left(
+            ExtendedApiError.new(
+              error_code: error['code'],
+              error_sub_code: error['subCode'],
+              details: error['details'],
+              body: body,
+            )
           )
-        )
-      else
-        Left(ApiError.new(error_code: 'Payment system error', body: body))
+        else
+          Left(ApiError.new(error_code: 'Payment system error', body: body))
+        end
       end
     end
   end
