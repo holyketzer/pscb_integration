@@ -15,6 +15,10 @@ module PscbIntegration
       ERROR_CODES[error_code]
     end
 
+    def message
+      to_s
+    end
+
     def timeout?
       :timeout == error_code
     end

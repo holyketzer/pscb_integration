@@ -48,9 +48,11 @@ PscbIntegration.setup do |config|
   config.market_place = '<your market place id>'
   config.secret_key = '<your secret key>'
   config.demo_secret_key = '<your secret key for demo env>'
-  config.confirm_payment_callback = PaymentService.confirm_payment_callback
+  config.confirm_payment_callback = PaymentService.method(:confirm_pscb_payment_callback)
 end
 ```
+
+If your application didn't setup `PscbIntegration` configuration with `setup` block then `PscbIntegration::ConfigurationError` will be raised during first attempt to call of any method.
 
 ### Handling payment status notification
 
@@ -62,7 +64,7 @@ namespace :integration_api do
 end
 ```
 
-Implement callback function assigned to `confirm_payment_callback`:
+Implement callback function assigned to `confirm_pscb_payment_callback`:
 
 Arguments:
 `payment` - hash with payment details from PSCB:
@@ -85,7 +87,7 @@ Property          | Description
 Callback should return `true` if you system accepts and confirms payment, and `false` (`nil`) in case of rejecting. Example:
 
 ```ruby
-def confirm_payment_callback(payment, is_demo)
+def confirm_pscb_payment_callback(payment, is_demo)
   if (order = OrderModel.find_by(uid: payment['orderId']))
     # Some state machine transition
     order.apply_status(payment['state'])

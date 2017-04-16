@@ -15,7 +15,7 @@ module PscbIntegration
 
     attr_reader :body
 
-    def initialize(error_code:, body:)
+    def initialize(error_code:, body: nil)
       @error_code = error_code
       @body = body
     end
