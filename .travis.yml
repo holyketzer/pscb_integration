@@ -1,5 +1,19 @@
 sudo: false
 language: ruby
+
 rvm:
-  - 2.3.1
-before_install: gem install bundler -v 1.13.7
+  - 2.3.4
+  - 2.4.1
+  - ruby-head
+
+matrix:
+  allow_failures:
+    - rvm: ruby-head
+  fast_finish: true
+
+before_install: gem update --remote bundler
+install:
+  - bundle install --retry=3
+script:
+  - bundle exec rspec
+  - CODECLIMATE_REPO_TOKEN=3a6375a48b6a49b4da5a4aa32fbfce8445671f77d867c4d207ae92fc32d159ed bundle exec codeclimate-test-reporter
