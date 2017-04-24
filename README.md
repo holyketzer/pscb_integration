@@ -21,7 +21,7 @@ Stay awhile and listen. Are you sure that you need this stuff?
 
 ### Cons:
 
-* During 1.5 years of our expirience PSCB lost all client's reccurent bingings twice. We lost a lot of revenue because of that.
+* During 1.5 years of our expirience PSCB lost all client's reccurent bingings twice. We lost a lot of revenue because of this.
 * **Very slow** personal account web site, it takes tens of seconds to load a page.
 * API looks not solid and have a lack of consistency, it has several ways to return errors in response 
 * PSCB send demo environment payment callbacks to your production server, and if you don't handle them, they send you email like 'We have got invalid response for our HTTP-callbacks', so they can't completely split demo and production environments
