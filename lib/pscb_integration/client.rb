@@ -106,6 +106,9 @@ module PscbIntegration
       response = @client.post(path) do |request|
         request.headers['Signature'] = signature(body)
         request.body = body
+
+        request.options.timeout = config.timeout
+        request.options.open_timeout = config.timeout
       end
 
       Right(response.body)
