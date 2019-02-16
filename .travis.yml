@@ -1,9 +1,11 @@
 sudo: false
 language: ruby
+cache: bundler
 
 rvm:
-  - 2.3.4
-  - 2.4.1
+  - 2.4.5
+  - 2.5.3
+  - 2.6.1
   - ruby-head
 
 matrix:
@@ -11,8 +13,9 @@ matrix:
     - rvm: ruby-head
   fast_finish: true
 
-before_install: gem update --remote bundler
+# before_install: gem update --remote bundler
 install:
+  - gem install bundler -v 1.17.3
   - bundle install --retry=3
 script:
   - bundle exec rspec
